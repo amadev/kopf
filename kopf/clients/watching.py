@@ -27,7 +27,7 @@ from typing import AsyncIterator, Dict, Optional, cast
 import aiohttp
 
 from kopf.clients import auth, discovery, errors, fetching
-from kopf.structs import bodies, configuration, primitives, resources
+from kopf.structs import bodies, configuration, primitives, references
 from kopf.utilities import aiotasks
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class WatchingError(Exception):
 async def infinite_watch(
         *,
         settings: configuration.OperatorSettings,
-        resource: resources.Resource,
+        resource: references.Resource,
         namespace: Optional[str],
         freeze_mode: Optional[primitives.Toggle] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
@@ -71,7 +71,7 @@ async def infinite_watch(
 async def streaming_watch(
         *,
         settings: configuration.OperatorSettings,
-        resource: resources.Resource,
+        resource: references.Resource,
         namespace: Optional[str],
         freeze_mode: Optional[primitives.Toggle] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
@@ -113,7 +113,7 @@ async def streaming_watch(
 async def continuous_watch(
         *,
         settings: configuration.OperatorSettings,
-        resource: resources.Resource,
+        resource: references.Resource,
         namespace: Optional[str],
         freeze_waiter: aiotasks.Future,
 ) -> AsyncIterator[bodies.RawEvent]:
@@ -168,7 +168,7 @@ async def continuous_watch(
 async def watch_objs(
         *,
         settings: configuration.OperatorSettings,
-        resource: resources.Resource,
+        resource: references.Resource,
         namespace: Optional[str],
         timeout: Optional[float] = None,
         since: Optional[str] = None,

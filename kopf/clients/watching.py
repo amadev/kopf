@@ -42,7 +42,7 @@ class WatchingError(Exception):
 async def infinite_watch(
         *,
         settings: configuration.OperatorSettings,
-        resource: references.Resource,
+        resource: references.ResourceRef,
         namespace: Optional[str],
         freeze_mode: Optional[primitives.Toggle] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
@@ -71,7 +71,7 @@ async def infinite_watch(
 async def streaming_watch(
         *,
         settings: configuration.OperatorSettings,
-        resource: references.Resource,
+        resource: references.ResourceRef,
         namespace: Optional[str],
         freeze_mode: Optional[primitives.Toggle] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
@@ -113,7 +113,7 @@ async def streaming_watch(
 async def continuous_watch(
         *,
         settings: configuration.OperatorSettings,
-        resource: references.Resource,
+        resource: references.ResourceRef,
         namespace: Optional[str],
         freeze_waiter: aiotasks.Future,
 ) -> AsyncIterator[bodies.RawEvent]:
@@ -168,7 +168,7 @@ async def continuous_watch(
 async def watch_objs(
         *,
         settings: configuration.OperatorSettings,
-        resource: references.Resource,
+        resource: references.ResourceRef,
         namespace: Optional[str],
         timeout: Optional[float] = None,
         since: Optional[str] = None,

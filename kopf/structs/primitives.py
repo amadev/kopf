@@ -136,6 +136,12 @@ class Toggle:
         """ Check if the toggle is currently off (opposite of `.is_on`). """
         return bool(not self._state)
 
+    async def turn(self, value: bool) -> None:
+        """ Turn the toggle on/off, and wake up the tasks waiting for that. """
+        async with self._condition:
+            self._state = bool(value)
+            self._condition.notify_all()
+
     async def turn_on(self) -> None:
         """ Turn the toggle on, and wake up the tasks waiting for that. """
         async with self._condition:

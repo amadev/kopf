@@ -45,6 +45,9 @@ class GenericRegistry(Generic[HandlerFnT, HandlerT]):
         self._handlers = []
 
     def __bool__(self) -> bool:
+        warnings.warn("bool(registry) is deprecated; "
+                      "please cease using the internal registries directly.",
+                      DeprecationWarning)
         return bool(self._handlers)
 
     def append(self, handler: HandlerT) -> None:
@@ -400,7 +403,7 @@ class OperatorRegistry:
             self,
     ) -> bool:
         warnings.warn("registry.has_activity_handlers() is deprecated; "
-                      "use registry.activity_handlers directly.",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return bool(self.activity_handlers)
 
@@ -409,7 +412,7 @@ class OperatorRegistry:
             resource: references.Resource,
     ) -> bool:
         warnings.warn("registry.has_resource_watching_handlers() is deprecated; "
-                      "use registry.resource_watching_handlers[resource] directly.",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return bool(self.resource_watching_handlers[resource])
 
@@ -418,7 +421,7 @@ class OperatorRegistry:
             resource: references.Resource,
     ) -> bool:
         warnings.warn("registry.has_resource_changing_handlers() is deprecated; "
-                      "use registry.resource_changing_handlers[resource] directly.",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return bool(self.resource_changing_handlers[resource])
 
@@ -428,7 +431,7 @@ class OperatorRegistry:
             activity: handlers.Activity,
     ) -> Sequence[handlers.ActivityHandler]:
         warnings.warn("registry.get_activity_handlers() is deprecated; "
-                      "use registry.activity_handlers.get_handlers().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return self.activity_handlers.get_handlers(activity=activity)
 
@@ -437,7 +440,7 @@ class OperatorRegistry:
             cause: causation.ResourceWatchingCause,
     ) -> Sequence[handlers.ResourceWatchingHandler]:
         warnings.warn("registry.get_resource_watching_handlers() is deprecated; "
-                      "use registry.resource_watching_handlers[resource].get_handlers().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return self.resource_watching_handlers[cause.resource].get_handlers(cause=cause)
 
@@ -446,7 +449,7 @@ class OperatorRegistry:
             cause: causation.ResourceChangingCause,
     ) -> Sequence[handlers.ResourceChangingHandler]:
         warnings.warn("registry.get_resource_changing_handlers() is deprecated; "
-                      "use registry.resource_changing_handlers[resource].get_handlers().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return self.resource_changing_handlers[cause.resource].get_handlers(cause=cause)
 
@@ -456,7 +459,7 @@ class OperatorRegistry:
             activity: handlers.Activity,
     ) -> Iterator[handlers.ActivityHandler]:
         warnings.warn("registry.iter_activity_handlers() is deprecated; "
-                      "use registry.activity_handlers.iter_handlers().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         yield from self.activity_handlers.iter_handlers(activity=activity)
 
@@ -468,7 +471,7 @@ class OperatorRegistry:
         Iterate all handlers for the low-level events.
         """
         warnings.warn("registry.iter_resource_watching_handlers() is deprecated; "
-                      "use registry.resource_watching_handlers[resource].iter_handlers().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         yield from self.resource_watching_handlers[cause.resource].iter_handlers(cause=cause)
 
@@ -480,7 +483,7 @@ class OperatorRegistry:
         Iterate all handlers that match this cause/event, in the order they were registered (even if mixed).
         """
         warnings.warn("registry.iter_resource_changing_handlers() is deprecated; "
-                      "use registry.resource_changing_handlers[resource].iter_handlers().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         yield from self.resource_changing_handlers[cause.resource].iter_handlers(cause=cause)
 
@@ -489,7 +492,7 @@ class OperatorRegistry:
             resource: references.Resource,
     ) -> Set[dicts.FieldPath]:
         warnings.warn("registry.get_extra_fields() is deprecated; "
-                      "use registry.resource_changing_handlers[resource].get_extra_fields().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return (
             self.resource_watching_handlers[resource].get_extra_fields() |
@@ -501,7 +504,7 @@ class OperatorRegistry:
             resource: references.Resource,
     ) -> Iterator[dicts.FieldPath]:
         warnings.warn("registry.iter_extra_fields() is deprecated; "
-                      "use registry.resource_changing_handlers[resource].iter_extra_fields().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         yield from self.resource_watching_handlers[resource].iter_extra_fields()
         yield from self.resource_changing_handlers[resource].iter_extra_fields()
@@ -516,7 +519,7 @@ class OperatorRegistry:
         Check whether a finalizer should be added to the given resource or not.
         """
         warnings.warn("registry.requires_finalizer() is deprecated; "
-                      "use registry.resource_changing_handlers[resource].requires_finalizer().",
+                      "please cease using the internal registries directly.",
                       DeprecationWarning)
         return self.resource_changing_handlers[resource].requires_finalizer(cause=cause)
 

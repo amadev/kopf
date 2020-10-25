@@ -90,17 +90,31 @@ class Toggle:
 
     The bi-directional toggles are needed in some places in the code, such as
     in the population/depletion of a `Vault`, or as an operator's freeze-mode.
+
+    The optional name is used only for hinting in reprs. It can be used when
+    there are many toggles, and they need to be distinguished somehow.
     """
 
     def __init__(
             self,
             __val: bool = False,
             *,
+            name: Optional[str] = None,
             condition: Optional[asyncio.Condition] = None,
     ) -> None:
         super().__init__()
         self._condition = condition if condition is not None else asyncio.Condition()
         self._state: bool = bool(__val)
+        self._name = name
+
+    def __repr__(self) -> str:
+        clsname = self.__class__.__name__
+        toggled = 'on' if self._state else 'off'
+        explain = '' if isinstance(self._state, bool) else f' ({self._state!r})'
+        if self._name is None:
+            return f'<{clsname}: {toggled}{explain}>'
+        else:
+            return f'<{clsname}: {self._name}: {toggled}{explain}>'
 
     def __bool__(self) -> bool:
         """
@@ -109,6 +123,10 @@ class Toggle:
         An equivalent of `.is_on` / `.is_off`.
         """
         return bool(self._state)
+
+    @property
+    def name(self) -> Optional[str]:
+        return self._name
 
     def is_on(self) -> bool:
         """ Check if the toggle is currently on (opposite of `.is_off`). """
@@ -198,8 +216,10 @@ class ToggleSet(Collection[Toggle]):
     async def make_toggle(
             self,
             __val: bool = False,
+            *,
+            name: Optional[str] = None,
     ) -> Toggle:
-        toggle = Toggle(__val, condition=self._condition)
+        toggle = Toggle(__val, name=name, condition=self._condition)
         async with self._condition:
             self._toggles.add(toggle)
             self._condition.notify_all()

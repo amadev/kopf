@@ -56,16 +56,22 @@ async def infinite_watch(
     a new one is recreated, and the stream continues.
     It only exits with unrecoverable exceptions.
     """
-    while True:
-        stream = streaming_watch(
-            settings=settings,
-            resource=resource,
-            namespace=namespace,
-            freeze_checker=freeze_checker,
-        )
-        async for raw_event in stream:
-            yield raw_event
-        await asyncio.sleep(settings.watching.reconnect_backoff)
+    how = ' (frozen)' if freeze_checker is not None and freeze_checker.is_on() else ''
+    where = f'in {namespace!r}' if namespace is not None else 'cluster-wide'
+    logger.debug(f"Starting the watch-stream for {resource} {where}{how}.")
+    try:
+        while True:
+            stream = streaming_watch(
+                settings=settings,
+                resource=resource,
+                namespace=namespace,
+                freeze_checker=freeze_checker,
+            )
+            async for raw_event in stream:
+                yield raw_event
+            await asyncio.sleep(settings.watching.reconnect_backoff)
+    finally:
+        logger.debug(f"Stopping the watch-stream for {resource} {where}.")
 
 
 async def streaming_watch(
@@ -81,9 +87,13 @@ async def streaming_watch(
     # so the while-true & for-event-in-stream cycles exit, and this coroutine is started
     # again by the `infinite_stream()` (the watcher timeout is swallowed by the freeze time).
     if freeze_checker is not None and freeze_checker.is_on():
-        logger.debug("Freezing the watch-stream for %r", resource)
+        where = f'in {namespace!r}' if namespace is not None else 'cluster-wide'
+        names = {toggle.name for toggle in freeze_checker._toggles if toggle.is_on() and toggle.name}
+        why = f" (problems: {', '.join(names)})" if names else ""
+        logger.debug(f"Freezing the watch-stream for {resource} {where}{why}.")
         await freeze_checker.wait_for_off()
-        logger.debug("Resuming the watch-stream for %r", resource)
+        why = f" (resolved: {', '.join(names)})" if names else ""
+        logger.debug(f"Resuming the watch-stream for {resource} {where}{why}.")
 
     # A stop-feature is a client-specific way of terminating the streaming HTTPS connection
     # when a freeze-mode is turned on. The low-level API call attaches its `response.close()`
@@ -92,7 +102,7 @@ async def streaming_watch(
     if freeze_checker is not None:
         freeze_waiter = aiotasks.create_task(
             freeze_checker.wait_for_on(),
-            name=f'freeze-waiter for {resource.name} @ {namespace or "cluster-wide"}')
+            name=f"freeze-waiter for {resource}")
     else:
         freeze_waiter = asyncio.Future()  # a dummy just ot have it
 
@@ -146,7 +156,8 @@ async def continuous_watch(
             # The resource versions are lost by k8s after few minutes (5, as per the official doc).
             # The error occurs when there is nothing happening for few minutes. This is normal.
             if raw_type == 'ERROR' and cast(bodies.RawError, raw_object)['code'] == 410:
-                logger.debug("Restarting the watch-stream for %r", resource)
+                where = f'in {namespace!r}' if namespace is not None else 'cluster-wide'
+                logger.debug(f"Restarting the watch-stream for {resource} {where}.")
                 return  # out of the regular stream, to the infinite stream.
 
             # Other watch errors should be fatal for the operator.

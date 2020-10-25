@@ -92,7 +92,7 @@ class Peer:
 async def process_peering_event(
         *,
         raw_event: bodies.RawEvent,
-        freeze_mode: primitives.Toggle,
+        freeze_toggle: primitives.Toggle,
         namespace: references.NamespaceRef,
         identity: Identity,
         settings: configuration.OperatorSettings,
@@ -128,18 +128,18 @@ async def process_peering_event(
         await clean(peers=dead_peers, settings=settings, namespace=namespace)
 
     if prio_peers:
-        if freeze_mode.is_off():
+        if freeze_toggle.is_off():
             logger.info(f"Freezing operations in favour of {prio_peers}.")
-            await freeze_mode.turn_on()
+            await freeze_toggle.turn_on()
     elif same_peers:
         logger.warning(f"Possibly conflicting operators with the same priority: {same_peers}.")
-        if freeze_mode.is_off():
+        if freeze_toggle.is_off():
             logger.warning(f"Freezing all operators, including self: {peers}")
-            await freeze_mode.turn_on()
+            await freeze_toggle.turn_on()
     else:
-        if freeze_mode.is_on():
+        if freeze_toggle.is_on():
             logger.info(f"Resuming operations after the freeze. Conflicting operators with the same priority are gone.")
-            await freeze_mode.turn_off()
+            await freeze_toggle.turn_off()
 
     # Either wait for external updates (and exit when they arrive), or until the blocking peers
     # are expected to expire, and force the immediate re-evaluation by a certain change of self.

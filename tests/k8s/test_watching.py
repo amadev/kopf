@@ -16,7 +16,7 @@ import pytest
 
 from kopf.clients.errors import APIError
 from kopf.clients.watching import WatchingError, infinite_watch, streaming_watch
-from kopf.structs.primitives import Toggle
+from kopf.structs.primitives import Toggle, ToggleSet
 
 STREAM_WITH_NORMAL_EVENTS = [
     {'type': 'ADDED', 'object': {'spec': 'a'}},
@@ -161,14 +161,16 @@ async def test_freezing_is_ignored_if_turned_off(
     stream.feed(STREAM_WITH_NORMAL_EVENTS, namespace=namespace)
     stream.close(namespace=namespace)
 
-    freeze_mode = Toggle(False)
+    freeze_checker = ToggleSet()
+    await freeze_checker.make_toggle(False)
+
     events = []
 
     async def read_stream():
         async for event in streaming_watch(settings=settings,
                                            resource=resource,
                                            namespace=namespace,
-                                           freeze_mode=freeze_mode):
+                                           freeze_checker=freeze_checker):
             events.append(event)
 
     caplog.set_level(logging.DEBUG)
@@ -189,14 +191,16 @@ async def test_freezing_waits_forever_if_not_resumed(
     stream.feed(STREAM_WITH_NORMAL_EVENTS, namespace=namespace)
     stream.close(namespace=namespace)
 
-    freeze_mode = Toggle(True)
+    freeze_checker = ToggleSet()
+    await freeze_checker.make_toggle(True)
+
     events = []
 
     async def read_stream():
         async for event in streaming_watch(settings=settings,
                                            resource=resource,
                                            namespace=namespace,
-                                           freeze_mode=freeze_mode):
+                                           freeze_checker=freeze_checker):
             events.append(event)
 
     caplog.set_level(logging.DEBUG)
@@ -219,18 +223,20 @@ async def test_freezing_waits_until_resumed(
     stream.feed(STREAM_WITH_NORMAL_EVENTS, namespace=namespace)
     stream.close(namespace=namespace)
 
-    freeze_mode = Toggle(True)
+    freeze_checker = ToggleSet()
+    freeze_toggle = await freeze_checker.make_toggle(True)
+
     events = []
 
     async def delayed_resuming(delay: float):
         await asyncio.sleep(delay)
-        await freeze_mode.turn_off()
+        await freeze_toggle.turn_off()
 
     async def read_stream():
         async for event in streaming_watch(settings=settings,
                                            resource=resource,
                                            namespace=namespace,
-                                           freeze_mode=freeze_mode):
+                                           freeze_checker=freeze_checker):
             events.append(event)
 
     caplog.set_level(logging.DEBUG)

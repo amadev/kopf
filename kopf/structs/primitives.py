@@ -6,7 +6,7 @@ import concurrent.futures
 import enum
 import threading
 import time
-from typing import Any, Optional, Union
+from typing import Any, Collection, Iterable, Iterator, Optional, Set, Union
 
 from kopf.utilities import aiotasks
 
@@ -95,9 +95,11 @@ class Toggle:
     def __init__(
             self,
             __val: bool = False,
+            *,
+            condition: Optional[asyncio.Condition] = None,
     ) -> None:
         super().__init__()
-        self._condition = asyncio.Condition()
+        self._condition = condition if condition is not None else asyncio.Condition()
         self._state: bool = bool(__val)
 
     def __bool__(self) -> bool:
@@ -131,12 +133,82 @@ class Toggle:
     async def wait_for_on(self) -> None:
         """ Wait until the toggle is turned on (if not yet). """
         async with self._condition:
-            await self._condition.wait_for(lambda: self._state)
+            await self._condition.wait_for(self.is_on)
 
     async def wait_for_off(self) -> None:
         """ Wait until the toggle is turned off (if not yet). """
         async with self._condition:
-            await self._condition.wait_for(lambda: not self._state)
+            await self._condition.wait_for(self.is_off)
+
+
+class ToggleSet(Collection[Toggle]):
+    """
+    A read-only checker for multiple toggles.
+
+    The toggle-checker does not have its own state to be turned on/off.
+    It is "on" when at least one child toggle is "on",
+    and it is "off" when all children toggles are "off",
+    or if it has no children toggles at all.
+
+    The multi-toggle is used mostly in peering, where every individual peering
+    identified by name and namespace has its own individual toggle to manage,
+    but the whole set of toggles of all names & namespaces is used for freezing
+    the operators as one single logical toggle.
+
+    Note: the set can only contain toggles that were produced by the set;
+    externally produced toggles cannot be added, since they do not share
+    the same condition object, which is used for synchronisation/notifications.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._condition = asyncio.Condition()
+        self._toggles: Set[Toggle] = set()
+
+    def __repr__(self) -> str:
+        return repr(self._toggles)
+
+    def __len__(self) -> int:
+        return len(self._toggles)
+
+    def __iter__(self) -> Iterator[Toggle]:
+        return iter(self._toggles)
+
+    def __contains__(self, toggle: object) -> bool:
+        return toggle in self._toggles
+
+    def is_on(self) -> bool:
+        """ Check if any toggles are currently on (opposite of `.is_off`). """
+        return any(toggle.is_on() for toggle in self._toggles)
+
+    def is_off(self) -> bool:
+        """ Check if all toggles are currently off (opposite of `.is_on`). """
+        return all(toggle.is_off() for toggle in self._toggles)
+
+    async def wait_for_on(self) -> None:
+        """ Wait until any toggles are turned on (if not yet). """
+        async with self._condition:
+            await self._condition.wait_for(self.is_on)
+
+    async def wait_for_off(self) -> None:
+        """ Wait until all toggles are turned off (if not yet). """
+        async with self._condition:
+            await self._condition.wait_for(self.is_off)
+
+    async def make_toggle(
+            self,
+            __val: bool = False,
+    ) -> Toggle:
+        toggle = Toggle(__val, condition=self._condition)
+        async with self._condition:
+            self._toggles.add(toggle)
+            self._condition.notify_all()
+        return toggle
+
+    async def drop_toggle(self, toggle: Toggle) -> None:
+        async with self._condition:
+            self._toggles.discard(toggle)
+            self._condition.notify_all()
 
 
 class DaemonStoppingReason(enum.Flag):

@@ -60,7 +60,7 @@ async def test_other_peering_objects_are_ignored(
     settings.peering.name = our_name
     await process_peering_event(
         raw_event=event,
-        freeze_mode=primitives.Toggle(),
+        freeze_toggle=primitives.Toggle(),
         replenished=replenished,
         autoclean=False,
         identity='id',
@@ -91,21 +91,21 @@ async def test_toggled_on_for_higher_priority_peer_when_initially_off(
     settings.peering.name = 'name'
     settings.peering.priority = 100
 
-    freeze_mode = primitives.Toggle(False)
+    freeze_toggle = primitives.Toggle(False)
     wait_for = mocker.patch('asyncio.wait_for')
 
     caplog.set_level(0)
-    assert freeze_mode.is_off()
+    assert freeze_toggle.is_off()
     await process_peering_event(
         raw_event=event,
-        freeze_mode=freeze_mode,
+        freeze_toggle=freeze_toggle,
         replenished=replenished,
         autoclean=False,
         namespace='namespace',
         identity='id',
         settings=settings,
     )
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     assert wait_for.call_count == 1
     assert 9 < wait_for.call_args[1]['timeout'] < 10
     assert not k8s_mocked.patch_obj.called
@@ -135,21 +135,21 @@ async def test_ignored_for_higher_priority_peer_when_already_on(
     settings.peering.name = 'name'
     settings.peering.priority = 100
 
-    freeze_mode = primitives.Toggle(True)
+    freeze_toggle = primitives.Toggle(True)
     wait_for = mocker.patch('asyncio.wait_for')
 
     caplog.set_level(0)
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     await process_peering_event(
         raw_event=event,
-        freeze_mode=freeze_mode,
+        freeze_toggle=freeze_toggle,
         replenished=replenished,
         autoclean=False,
         namespace='namespace',
         identity='id',
         settings=settings,
     )
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     assert wait_for.call_count == 1
     assert 9 < wait_for.call_args[1]['timeout'] < 10
     assert not k8s_mocked.patch_obj.called
@@ -180,21 +180,21 @@ async def test_toggled_off_for_lower_priority_peer_when_initially_on(
     settings.peering.name = 'name'
     settings.peering.priority = 100
 
-    freeze_mode = primitives.Toggle(True)
+    freeze_toggle = primitives.Toggle(True)
     wait_for = mocker.patch('asyncio.wait_for')
 
     caplog.set_level(0)
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     await process_peering_event(
         raw_event=event,
-        freeze_mode=freeze_mode,
+        freeze_toggle=freeze_toggle,
         replenished=replenished,
         autoclean=False,
         namespace='namespace',
         identity='id',
         settings=settings,
     )
-    assert freeze_mode.is_off()
+    assert freeze_toggle.is_off()
     assert wait_for.call_count == 0
     assert not k8s_mocked.patch_obj.called
     assert_logs(["Resuming operations after the freeze"], prohibited=[
@@ -223,21 +223,21 @@ async def test_ignored_for_lower_priority_peer_when_already_off(
     settings.peering.name = 'name'
     settings.peering.priority = 100
 
-    freeze_mode = primitives.Toggle(False)
+    freeze_toggle = primitives.Toggle(False)
     wait_for = mocker.patch('asyncio.wait_for')
 
     caplog.set_level(0)
-    assert freeze_mode.is_off()
+    assert freeze_toggle.is_off()
     await process_peering_event(
         raw_event=event,
-        freeze_mode=freeze_mode,
+        freeze_toggle=freeze_toggle,
         replenished=replenished,
         autoclean=False,
         namespace='namespace',
         identity='id',
         settings=settings,
     )
-    assert freeze_mode.is_off()
+    assert freeze_toggle.is_off()
     assert wait_for.call_count == 0
     assert not k8s_mocked.patch_obj.called
     assert_logs([], prohibited=[
@@ -267,21 +267,21 @@ async def test_toggled_on_for_same_priority_peer_when_initially_off(
     settings.peering.name = 'name'
     settings.peering.priority = 100
 
-    freeze_mode = primitives.Toggle(False)
+    freeze_toggle = primitives.Toggle(False)
     wait_for = mocker.patch('asyncio.wait_for')
 
     caplog.set_level(0)
-    assert freeze_mode.is_off()
+    assert freeze_toggle.is_off()
     await process_peering_event(
         raw_event=event,
-        freeze_mode=freeze_mode,
+        freeze_toggle=freeze_toggle,
         replenished=replenished,
         autoclean=False,
         namespace='namespace',
         identity='id',
         settings=settings,
     )
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     assert wait_for.call_count == 1
     assert 9 < wait_for.call_args[1]['timeout'] < 10
     assert not k8s_mocked.patch_obj.called
@@ -313,21 +313,21 @@ async def test_ignored_for_same_priority_peer_when_already_on(
     settings.peering.name = 'name'
     settings.peering.priority = 100
 
-    freeze_mode = primitives.Toggle(True)
+    freeze_toggle = primitives.Toggle(True)
     wait_for = mocker.patch('asyncio.wait_for')
 
     caplog.set_level(0)
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     await process_peering_event(
         raw_event=event,
-        freeze_mode=freeze_mode,
+        freeze_toggle=freeze_toggle,
         replenished=replenished,
         autoclean=False,
         namespace='namespace',
         identity='id',
         settings=settings,
     )
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     assert wait_for.call_count == 1
     assert 9 < wait_for.call_args[1]['timeout'] < 10
     assert not k8s_mocked.patch_obj.called
@@ -360,21 +360,21 @@ async def test_resumes_immediately_on_expiration_of_blocking_peers(
     settings.peering.name = 'name'
     settings.peering.priority = 100
 
-    freeze_mode = primitives.Toggle(True)
+    freeze_toggle = primitives.Toggle(True)
     wait_for = mocker.patch('asyncio.wait_for', side_effect=asyncio.TimeoutError)
 
     caplog.set_level(0)
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     await process_peering_event(
         raw_event=event,
-        freeze_mode=freeze_mode,
+        freeze_toggle=freeze_toggle,
         replenished=replenished,
         autoclean=False,
         namespace='namespace',
         identity='id',
         settings=settings,
     )
-    assert freeze_mode.is_on()
+    assert freeze_toggle.is_on()
     assert wait_for.call_count == 1
     assert 9 < wait_for.call_args[1]['timeout'] < 10
     assert k8s_mocked.patch_obj.called

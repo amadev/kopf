@@ -44,7 +44,7 @@ async def infinite_watch(
         settings: configuration.OperatorSettings,
         resource: references.ResourceRef,
         namespace: references.NamespaceRef,
-        freeze_mode: Optional[primitives.Toggle] = None,
+        freeze_checker: Optional[primitives.ToggleSet] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
     """
     Stream the watch-events infinitely.
@@ -61,7 +61,7 @@ async def infinite_watch(
             settings=settings,
             resource=resource,
             namespace=namespace,
-            freeze_mode=freeze_mode,
+            freeze_checker=freeze_checker,
         )
         async for raw_event in stream:
             yield raw_event
@@ -73,25 +73,25 @@ async def streaming_watch(
         settings: configuration.OperatorSettings,
         resource: references.ResourceRef,
         namespace: references.NamespaceRef,
-        freeze_mode: Optional[primitives.Toggle] = None,
+        freeze_checker: Optional[primitives.ToggleSet] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
 
     # Prevent both watching and listing while the freeze mode is on, until it is off.
     # Specifically, the watch-stream closes its connection once the freeze mode is on,
     # so the while-true & for-event-in-stream cycles exit, and this coroutine is started
     # again by the `infinite_stream()` (the watcher timeout is swallowed by the freeze time).
-    if freeze_mode is not None and freeze_mode.is_on():
+    if freeze_checker is not None and freeze_checker.is_on():
         logger.debug("Freezing the watch-stream for %r", resource)
-        await freeze_mode.wait_for_off()
+        await freeze_checker.wait_for_off()
         logger.debug("Resuming the watch-stream for %r", resource)
 
     # A stop-feature is a client-specific way of terminating the streaming HTTPS connection
     # when a freeze-mode is turned on. The low-level API call attaches its `response.close()`
     # to the future's callbacks, and a background task triggers it when the mode is turned on.
     freeze_waiter: aiotasks.Future
-    if freeze_mode is not None:
+    if freeze_checker is not None:
         freeze_waiter = aiotasks.create_task(
-            freeze_mode.wait_for_on(),
+            freeze_checker.wait_for_on(),
             name=f'freeze-waiter for {resource.name} @ {namespace or "cluster-wide"}')
     else:
         freeze_waiter = asyncio.Future()  # a dummy just ot have it

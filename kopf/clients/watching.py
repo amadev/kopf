@@ -43,7 +43,7 @@ async def infinite_watch(
         *,
         settings: configuration.OperatorSettings,
         resource: references.ResourceRef,
-        namespace: Optional[str],
+        namespace: references.NamespaceRef,
         freeze_mode: Optional[primitives.Toggle] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
     """
@@ -72,7 +72,7 @@ async def streaming_watch(
         *,
         settings: configuration.OperatorSettings,
         resource: references.ResourceRef,
-        namespace: Optional[str],
+        namespace: references.NamespaceRef,
         freeze_mode: Optional[primitives.Toggle] = None,
 ) -> AsyncIterator[bodies.RawEvent]:
 
@@ -99,7 +99,8 @@ async def streaming_watch(
     try:
         stream = continuous_watch(
             settings=settings,
-            resource=resource, namespace=namespace,
+            resource=resource,
+            namespace=namespace,
             freeze_waiter=freeze_waiter,
         )
         async for raw_event in stream:
@@ -114,7 +115,7 @@ async def continuous_watch(
         *,
         settings: configuration.OperatorSettings,
         resource: references.ResourceRef,
-        namespace: Optional[str],
+        namespace: references.NamespaceRef,
         freeze_waiter: aiotasks.Future,
 ) -> AsyncIterator[bodies.RawEvent]:
 
@@ -131,7 +132,8 @@ async def continuous_watch(
         # Then, watch the resources starting from the list's resource version.
         stream = watch_objs(
             settings=settings,
-            resource=resource, namespace=namespace,
+            resource=resource,
+            namespace=namespace,
             timeout=settings.watching.server_timeout,
             since=resource_version,
             freeze_waiter=freeze_waiter,
@@ -169,7 +171,7 @@ async def watch_objs(
         *,
         settings: configuration.OperatorSettings,
         resource: references.ResourceRef,
-        namespace: Optional[str],
+        namespace: references.NamespaceRef,
         timeout: Optional[float] = None,
         since: Optional[str] = None,
         context: Optional[auth.APIContext] = None,  # injected by the decorator
